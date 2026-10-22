@@ -1,0 +1,7 @@
+flask==3.1.2
+flask-mail==0.10.0
+flask-session==0.8.0
+Flask-SQLAlchemy==3.1.1
+reverse_geocoder==1.5.1
+requests==2.32.3
+psycopg2-binary==2.9.9

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="no-navbar">
+<h2>Sign Up</h2>
+<form method="post">
+    <label for="role">Choose Role:</label>
+    <select id="role" name="role" required>
+        <option value="user">User</option>
+        <option value="station_master">Station Master</option>
+    </select><br><br>
+    <label>Name:</label><br>
+    <input type="text" name="name" required><br><br>
+    <label>Email:</label><br>
+    <input type="email" name="email" required><br><br>
+    <label>Password:</label><br>
+    <input type="password" name="password" required><br><br>
+    <button type="submit">Sign Up</button>
+</form>
+</div>
+{% endblock %}

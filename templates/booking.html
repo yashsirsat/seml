@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Book Seats</h2>
+
+<!-- Bus select form -->
+<form method="post" action="{{ url_for('booking') }}">
+    <label>Bus Name:</label>
+    <select name="bus_name" required>
+        {% for name in bus_names %}
+            <option value="{{ name }}">{{ name }}</option>
+        {% endfor %}
+    </select><br>
+    <label>Bus Type:</label>
+    <select name="bus_type" required>
+        {% for btype in bus_types %}
+            <option value="{{ btype }}">{{ btype }}</option>
+        {% endfor %}
+    </select><br>
+    <label>Start Time:</label>
+    <select name="bus_start_time" required>
+        {% for time in bus_times %}
+            <option value="{{ time }}">{{ time }}</option>
+        {% endfor %}
+    </select><br>
+    <button type="submit" name="action" value="show_buses">Show Available Buses</button>
+</form>
+
+{% if buses %}
+<hr>
+<h3>Select Bus:</h3>
+<form method="post" action="{{ url_for('booking') }}">
+    <select name="selected_bus" required>
+        {% for bus in buses %}
+            <option value="{{ bus['bus_name'] }}">{{ bus['bus_name'] }} at {{ bus['bus_start_time'] }}</option>
+        {% endfor %}
+    </select><br>
+    <button type="submit" name="action" value="select_bus">Select Bus</button>
+</form>
+{% endif %}
+
+{% if seat_rows %}
+<hr>
+<h3>Select Your Seats:</h3>
+<form method="post" action="{{ url_for('booking') }}">
+    <div class="seat-layout" style="display: flex; flex-direction: column; gap: 8px;">
+        {% for row in seat_rows %}
+            <div class="seat-row" style="display: flex; flex-direction: row; gap: 8px;">
+                {% for seat in row %}
+                    {% if seat %}
+                        <label class="seat-label {% if booked and seat in booked %}booked{% endif %}" style="display: flex; flex-direction: column; align-items: center;">
+                            <input type="checkbox" name="seat_numbers" value="{{ seat }}"
+                                {% if booked and seat in booked %}disabled{% endif %}>
+                            <span class="seat-num" style="width:35px; height:35px; border:1.5px solid #333; display:inline-block; border-radius:8px; line-height:35px; text-align:center; background: {% if booked and seat in booked %}#f44{% else %}#fff{% endif %};">
+                                {{ seat }}
+                            </span>
+                        </label>
+                    {% else %}
+                        <span class="seat-empty" style="width:35px; height:35px; display:inline-block;"></span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <input type="hidden" name="selected_key" value="{{ selected_key }}">
+    <button type="submit" name="action" value="book_seat" style="margin-top:20px;">Book Seat(s)</button>
+</form>
+{% endif %}
+{% endblock %}

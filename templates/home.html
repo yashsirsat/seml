@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome, {{ name }} (Role: {{ role|capitalize }})</h1>
+<div class="home-sections">
+    <a class="home-card" href="{{ url_for('track') }}">Track Bus</a>
+    <a class="home-card" href="{{ url_for('booking') }}">Book Seats</a>
+    <a class="home-card" href="{{ url_for('timetable') }}">Timetable</a>
+</div>
+{% endblock %}

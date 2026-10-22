@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Bus Timetable</h2>
+<form method="post">
+    <label>Bus Name:</label>
+    <select name="bus_name" required>
+        <option value="">All</option>
+        {% for name in bus_names %}
+            <option value="{{ name }}">{{ name }}</option>
+        {% endfor %}
+    </select><br>
+
+    <label>Bus Type:</label>
+    <select name="bus_type" required>
+        <option value="">All</option>
+        {% for btype in bus_types %}
+            <option value="{{ btype }}">{{ btype }}</option>
+        {% endfor %}
+    </select><br>
+
+    <label>Start Time:</label>
+    <select name="bus_start_time" required>
+        <option value="">All</option>
+        {% for time in bus_times %}
+            <option value="{{ time }}">{{ time }}</option>
+        {% endfor %}
+    </select><br>
+
+    <button type="submit">Search Timetable</button>
+</form>
+
+{% if buses %}
+<table border="1" style="margin:auto; margin-top:20px; width: 80%;">
+    <thead>
+        <tr>
+            <th>Bus Name</th>
+            <th>Type</th>
+            <th>Start Point</th>
+            <th>End Point</th>
+            <th>Station Place</th>
+            <th>Start Time</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for bus in buses %}
+        <tr>
+            <td>{{ bus.bus_name }}</td>
+            <td>{{ bus.bus_type }}</td>
+            <td>{{ bus.start_point }}</td>
+            <td>{{ bus.end_point }}</td>
+            <td>{{ bus.station_place }}</td>
+            <td>{{ bus.bus_start_time }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+bus_name,bus_type,start_point,end_point,station_place,bus_start_time
+Shivneri Express,AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",06:00 AM
+Shivneri Express,AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",08:00 AM
+Shivneri Express,AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",10:00 AM
+Shivneri Express,AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",01:00 PM
+MSRTC Local,Non-AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",03:00 PM
+MSRTC Local,Non-AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",05:00 PM
+MSRTC Local,Non-AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",09:00 PM
+MSRTC Local,Non-AC,Pune,Mumbai,"Pune, Nigdi, Pimpri, Chinchwad, Dadar",11:00 PM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",06:00 AM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",07:00 AM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",08:00 AM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",10:00 AM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",01:00 PM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",03:00 PM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",05:00 PM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",07:00 PM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",09:00 PM
+Alibaug Express,AC,Pune,Alibaug,"Pune, Pen, Alibaug",11:00 PM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",06:30 AM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",08:30 AM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",10:30 AM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",01:30 PM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",03:30 PM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",05:30 PM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",07:30 PM
+Nashik Express,AC,Pune,Nashik,"Pune, Chakan, Sangamner, Nashik",09:30 PM

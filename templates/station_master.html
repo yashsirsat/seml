@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Station Master - Update Bus Location</h2>
+
+<form method="POST" id="locForm">
+  <label for="bus_name">Select Bus Name</label>
+  <select name="bus_name" id="bus_name" required>
+    {% for b in bus_names %}
+    <option value="{{b}}">{{b}}</option>
+    {% endfor %}
+  </select><br><br>
+
+  <label for="bus_type">Select Bus Type</label>
+  <select name="bus_type" id="bus_type" required>
+    {% for t in bus_types %}
+    <option value="{{t}}">{{t}}</option>
+    {% endfor %}
+  </select><br><br>
+
+  <label for="bus_start_time">Select Bus Start Time</label>
+  <select name="bus_start_time" id="bus_start_time" required>
+    {% for time in bus_times %}
+    <option value="{{time}}">{{time}}</option>
+    {% endfor %}
+  </select><br><br>
+
+  <label for="location">Current Location (GPS Auto-detected):</label>
+  <input type="text" name="location" id="locationInput" placeholder="Detecting GPS..." readonly required>
+  <p id="gpsStatus">Detecting your location...</p><br><br>
+
+  <button type="submit" id="updateBtn">Update Location</button>
+  <div id="updateStatus"></div>
+</form>
+
+<div id="currentLocationDisplay" style="margin-top:20px; padding:10px; border:1px solid #ccc; background-color:#f9f9f9;">
+  <h3>Current Bus Location (Auto-updated by Bot)</h3>
+  <p id="currentLocation">Loading...</p>
+  <p id="lastUpdateTime">Last updated: Never</p>
+</div>
+
+<div id="activeBusesSection" style="margin-top:20px; padding:10px; border:1px solid #ddd; background-color:#f0f8ff;">
+  <h3>🤖 Active Auto-Tracking Buses <small>(Bot Active)</small></h3>
+  <div id="activeBusesList">
+    <p>Loading active buses...</p>
+  </div>
+</div>
+
+<script>
+/** * 1. GPS Detection Logic
+ */
+function getLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            document.getElementById('locationInput').value = pos.coords.latitude + ',' + pos.coords.longitude;
+            document.getElementById('gpsStatus').textContent = 'GPS detected successfully.';
+        }, function(error) {
+            document.getElementById('gpsStatus').textContent = 'GPS access denied. Please allow location access.';
+            alert("GPS access is required.");
+        });
+    } else {
+        document.getElementById('gpsStatus').textContent = 'Geolocation not supported.';
+    }
+}
+
+/**
+ * 2. Enhanced updateCurrentLocation (15s interval + Loading Feedback)
+ */
+function updateCurrentLocation() {
+    const busName = document.getElementById('bus_name').value;
+    const busType = document.getElementById('bus_type').value;
+    const busStartTime = document.getElementById('bus_start_time').value;
+
+    if (busName && busType && busStartTime) {
+        const currentLoc = document.getElementById('currentLocation');
+        const lastUpdate = document.getElementById('lastUpdateTime');
+        
+        // Visual feedback that refresh is happening
+        lastUpdate.style.opacity = '0.5';
+
+        fetch(`/bus_location_api?bus_name=${encodeURIComponent(busName)}&bus_type=${encodeURIComponent(busType)}&bus_start_time=${encodeURIComponent(busStartTime)}`)
+            .then(response => response.json())
+            .then(data => {
+                currentLoc.textContent = `Location: ${data.location || 'Unknown'}`;
+                lastUpdate.textContent = `Last updated: ${data.timestamp || 'Just now'}`;
+                lastUpdate.style.opacity = '1';
+            })
+            .catch(error => {
+                console.error('Error fetching location:', error);
+                lastUpdate.textContent = 'Last updated: Sync Error';
+                lastUpdate.style.opacity = '1';
+            });
+    }
+}
+
+/**
+ * 3. AJAX Form Submit (Immediate Refresh post-submit)
+ */
+document.getElementById('locForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const updateBtn = document.getElementById('updateBtn');
+    const statusDiv = document.getElementById('updateStatus');
+    const formData = new FormData(this);
+    
+    updateBtn.disabled = true;
+    updateBtn.textContent = 'Updating...';
+    statusDiv.innerHTML = 'Sending location update...';
+    
+    try {
+        const response = await fetch('/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            statusDiv.innerHTML = '<p style="color:green; font-weight:bold;">✅ Location updated! refreshing display...</p>';
+            
+            // Immediate Timestamp Update
+            updateCurrentLocation();
+            // Refresh the Active Buses list
+            loadActiveBuses();
+            
+            const text = await response.text();
+            if (text.toLowerCase().includes('bot activated') || text.toLowerCase().includes('enabled')) {
+                alert("Auto location bot activated!");
+            }
+        } else {
+            throw new Error('Server responded with error');
+        }
+    } catch (error) {
+        statusDiv.innerHTML = '<p style="color:red;">Update failed. Retrying manually...</p>';
+        this.submit(); // Fallback
+    } finally {
+        updateBtn.disabled = false;
+        updateBtn.textContent = 'Update Location';
+        // Clear status message after 3 seconds
+        setTimeout(() => { statusDiv.innerHTML = ''; }, 3000);
+    }
+});
+
+/**
+ * 4. Active Buses Management
+ */
+function loadActiveBuses() {
+    fetch('/api/get_started_buses')
+        .then(response => response.json())
+        .then(data => {
+            const listDiv = document.getElementById('activeBusesList');
+            const activeBuses = data.started_buses || [];
+            
+            if (activeBuses.length === 0) {
+                listDiv.innerHTML = '<p>No active buses.</p>';
+            } else {
+                listDiv.innerHTML = activeBuses.map(busKey => {
+                    const parts = busKey.split('_');
+                    return `
+                        <div style="padding:8px; margin:5px 0; background:#e8f5e8; border-left:4px solid #4caf50; border-radius:4px; overflow:hidden;">
+                            <strong>${parts[0]} (${parts[1]})</strong> @ ${parts.slice(2).join(':')}
+                            <button onclick="stopSharing('${busKey}')" 
+                                    style="float:right; background:#f44336; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">
+                                Stop
+                            </button>
+                        </div>`;
+                }).join('');
+            }
+        });
+}
+
+function stopSharing(busKey) {
+    if (confirm(`Stop auto-tracking?`)) {
+        fetch(`/api/stop_sharing/${busKey}`)
+            .then(() => {
+                loadActiveBuses();
+                updateCurrentLocation();
+            });
+    }
+}
+
+// Initializing page logic
+window.onload = function() {
+    getLocation();
+    loadActiveBuses();
+    updateCurrentLocation();
+    
+    // 5. Set Intervals (15s for location, 30s for list)
+    setInterval(updateCurrentLocation, 15000); 
+    setInterval(loadActiveBuses, 30000);
+};
+
+// Event listeners for dropdown changes
+['bus_name', 'bus_type', 'bus_start_time'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updateCurrentLocation);
+});
+</script>
+
+{% endblock %}

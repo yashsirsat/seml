@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Booking Confirmation</h2>
+<p><strong>Selected Seats:</strong> {{ seat_numbers|join(', ') }}</p>
+<p><strong>Total Fare:</strong> ₹{{ fare }}</p>
+
+<form method="POST" action="/payment">
+    <button type="submit" style="padding: 10px 20px; font-size: 16px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Have you paid? Confirm Booking
+    </button>
+</form>
+
+<p style="margin-top: 20px; color: #666;">
+    <small>Click the button above to confirm your booking and receive a confirmation email.</small>
+</p>
+{% endblock %}

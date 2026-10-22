@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Track Bus Location</h2>
+<form id="trackForm">
+    <label for="bus_name">Bus Name:</label>
+    <select id="bus_name" name="bus_name" required>
+        <option value="">Select Bus Name</option>
+        {% for name in bus_names %}
+        <option value="{{ name }}">{{ name }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label for="bus_type">Bus Type:</label>
+    <select id="bus_type" name="bus_type" required>
+        <option value="">Select Bus Type</option>
+        {% for type in bus_types %}
+        <option value="{{ type }}">{{ type }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label for="bus_start_time">Start Time:</label>
+    <select id="bus_start_time" name="bus_start_time" required>
+        <option value="">Select Start Time</option>
+        {% for time in bus_times %}
+        <option value="{{ time }}">{{ time }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <button type="button" onclick="startTracking()">Start Tracking</button>
+</form>
+
+<p>Location: <span id="locationDisplay">Select a bus and start tracking</span></p>
+<p>Last updated at: <span id="timeDisplay"></span></p>
+
+<div id="mapContainer" style="margin-top:20px; display:none;">
+    <h3>Live Location on Google Maps</h3>
+    <iframe id="googleMap" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+</div>
+
+<script>
+  let intervalId = null;
+
+  function fetchLocation() {
+    const busName = document.getElementById('bus_name').value;
+    const busType = document.getElementById('bus_type').value;
+    const busStartTime = document.getElementById('bus_start_time').value;
+
+    if (!busName || !busType || !busStartTime) {
+      document.getElementById('locationDisplay').textContent = 'Please select all fields';
+      document.getElementById('timeDisplay').textContent = '';
+      return;
+    }
+
+    fetch(`/bus_location_api?bus_name=${busName}&bus_type=${busType}&bus_start_time=${busStartTime}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('locationDisplay').textContent = data.location;
+        document.getElementById('timeDisplay').textContent = data.timestamp;
+
+        // Update Google Maps if location is available
+        // Note: Replace YOUR_GOOGLE_MAPS_API_KEY with a valid Google Maps API key from https://console.cloud.google.com/
+        if (data.lat !== "Location not available" && data.lon !== "N/A") {
+          const lat = data.lat;
+          const lon = data.lon;
+          const mapUrl = `https://www.google.com/maps/embed/v1/view?key=YOUR_GOOGLE_MAPS_API_KEY&center=${lat},${lon}&zoom=15`;
+          document.getElementById('googleMap').src = mapUrl;
+          document.getElementById('mapContainer').style.display = 'block';
+        } else {
+          document.getElementById('mapContainer').style.display = 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching location:', error);
+        document.getElementById('locationDisplay').textContent = 'Error fetching location';
+        document.getElementById('timeDisplay').textContent = '';
+        document.getElementById('mapContainer').style.display = 'none';
+      });
+  }
+
+  function startTracking() {
+    if (intervalId) {
+      clearInterval(intervalId);
+    }
+    fetchLocation();
+    intervalId = setInterval(fetchLocation, 30000);
+  }
+</script>
+{% endblock %}

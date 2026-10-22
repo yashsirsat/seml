@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>MSRTC Bus Track & Booking</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="MSRTC Logo" class="header-logo"><br>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('track') }}">Track Bus</a>
+        <a href="{{ url_for('booking') }}">Book Seats</a>
+        <a href="{{ url_for('timetable') }}">Timetable</a>
+        {% if 'user_email' in session %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% if session.user_role == 'station_master' %}
+                <a href="{{ url_for('station_master') }}">Station Master</a>
+            {% endif %}
+        {% else %}
+            <a href="{{ url_for('signin') }}">Sign In</a>
+            <a href="{{ url_for('signup') }}">Sign Up</a>
+        {% endif %}
+    </nav>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    <footer>
+        <small>© MSRTC Bus Track & Booking</small>
+    </footer>
+</body>
+</html>
