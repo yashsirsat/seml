@@ -1,13 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="no-navbar">
-<h2>Sign In</h2>
-<form method="post">
-    <label>Email:</label>
-    <input type="email" name="email" required><br><br>
-    <label>Password:</label>
-    <input type="password" name="password" required><br><br>
-    <button type="submit">Sign In</button>
-</form>
-</div>
+<section class="auth-shell">
+    <div class="auth-story">
+        <p class="eyebrow">MAHARASHTRA STATE ROAD TRANSPORT</p>
+        <h1>Maharashtra,<br>in motion.</h1>
+        <div class="route-diagram" aria-hidden="true">
+            <span class="route-line"></span>
+            <span class="route-stop route-stop-one"><i></i><b>01</b></span>
+            <span class="route-stop route-stop-two"><i></i><b>02</b></span>
+            <span class="route-stop route-stop-three"><i></i><b>03</b></span>
+        </div>
+        <div class="story-caption"><span>PUBLIC TRANSPORT</span><span>EST. 1948</span></div>
+    </div>
+    <div class="auth-form-panel">
+        <p class="eyebrow eyebrow-red">PASSENGER ACCESS</p>
+        <h2>Welcome back</h2>
+        <p class="auth-subtitle">Sign in to continue.</p>
+        <form method="post" class="auth-form">
+            <label for="email">Email address</label>
+            <input id="email" type="email" name="email" autocomplete="email" placeholder="name@example.com" required>
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <button type="submit">Sign in <span aria-hidden="true">&#8594;</span></button>
+        </form>
+        <p class="auth-switch">New to the journey desk? <a href="{{ url_for('signup') }}">Create an account</a></p>
+    </div>
+</section>
 {% endblock %}

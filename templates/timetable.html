@@ -1,58 +1,98 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Bus Timetable</h2>
-<form method="post">
-    <label>Bus Name:</label>
-    <select name="bus_name" required>
-        <option value="">All</option>
-        {% for name in bus_names %}
-            <option value="{{ name }}">{{ name }}</option>
-        {% endfor %}
-    </select><br>
+<section class="timetable-hero">
+    <div>
+        <p class="eyebrow eyebrow-red">PASSENGER SERVICES / 03</p>
+        <h1>Plan your departure</h1>
+        <p>Browse the schedule and find the right service for your journey.</p>
+    </div>
+    <div class="timetable-hero-mark" aria-hidden="true">03<br><span>DEPARTURES</span></div>
+</section>
 
-    <label>Bus Type:</label>
-    <select name="bus_type" required>
-        <option value="">All</option>
-        {% for btype in bus_types %}
-            <option value="{{ btype }}">{{ btype }}</option>
-        {% endfor %}
-    </select><br>
-
-    <label>Start Time:</label>
-    <select name="bus_start_time" required>
-        <option value="">All</option>
-        {% for time in bus_times %}
-            <option value="{{ time }}">{{ time }}</option>
-        {% endfor %}
-    </select><br>
-
-    <button type="submit">Search Timetable</button>
+<form method="get" action="{{ url_for('timetable') }}" class="workflow-form timetable-filters">
+    <div class="section-heading">
+        <div><p class="eyebrow eyebrow-red">SCHEDULE SEARCH</p><h2>Find a bus</h2></div>
+        <p>Filters use scheduled services only.</p>
+    </div>
+    <div class="field-grid timetable-filter-grid">
+        <div class="form-field">
+            <label for="start_point">From</label>
+            <select id="start_point" name="start_point">
+                <option value="">All origins</option>
+                {% for point in start_points %}<option value="{{ point }}" {% if filters.start_point == point %}selected{% endif %}>{{ point }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="end_point">To</label>
+            <select id="end_point" name="end_point">
+                <option value="">All destinations</option>
+                {% for point in end_points %}<option value="{{ point }}" {% if filters.end_point == point %}selected{% endif %}>{{ point }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="bus_name">Service</label>
+            <select id="bus_name" name="bus_name">
+                <option value="">All services</option>
+                {% for name in bus_names %}<option value="{{ name }}" {% if filters.bus_name == name %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="bus_type">Type</label>
+            <select id="bus_type" name="bus_type">
+                <option value="">All types</option>
+                {% for btype in bus_types %}<option value="{{ btype }}" {% if filters.bus_type == btype %}selected{% endif %}>{{ btype }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="bus_start_time">Departure time</label>
+            <select id="bus_start_time" name="bus_start_time">
+                <option value="">Any time</option>
+                {% for time in bus_times %}<option value="{{ time }}" {% if filters.bus_start_time == time %}selected{% endif %}>{{ time }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="timetable-filter-actions">
+        <button type="submit">Search departures <span aria-hidden="true">&#8594;</span></button>
+        <a href="{{ url_for('timetable') }}">Clear filters</a>
+    </div>
 </form>
 
-{% if buses %}
-<table border="1" style="margin:auto; margin-top:20px; width: 80%;">
-    <thead>
-        <tr>
-            <th>Bus Name</th>
-            <th>Type</th>
-            <th>Start Point</th>
-            <th>End Point</th>
-            <th>Station Place</th>
-            <th>Start Time</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for bus in buses %}
-        <tr>
-            <td>{{ bus.bus_name }}</td>
-            <td>{{ bus.bus_type }}</td>
-            <td>{{ bus.start_point }}</td>
-            <td>{{ bus.end_point }}</td>
-            <td>{{ bus.station_place }}</td>
-            <td>{{ bus.bus_start_time }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% endif %}
+<section class="departure-results">
+    <div class="section-heading departure-heading">
+        <div><p class="eyebrow eyebrow-red">SCHEDULE</p><h2>Available departures</h2></div>
+        <span class="departure-count">{{ buses|length }} {{ 'service' if buses|length == 1 else 'services' }}</span>
+    </div>
+    {% if buses %}
+    <div class="table-wrap" aria-label="Bus departure results">
+        <table>
+            <thead>
+                <tr><th>Departure</th><th>Service</th><th>Route</th><th>Stops</th><th>Type</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for bus in buses %}
+                {% set service_key = bus['bus_name'] ~ '|' ~ bus['bus_type'] ~ '|' ~ bus['bus_start_time'] %}
+                <tr>
+                    <td><span class="departure-time">{{ bus['bus_start_time'] }}</span></td>
+                    <td><strong>{{ bus['bus_name'] }}</strong></td>
+                    <td><span class="route-chip">{{ bus['start_point'] }}</span><span class="route-arrow" aria-hidden="true">&#8594;</span><span class="route-chip">{{ bus['end_point'] }}</span></td>
+                    <td class="stop-list">{{ bus['station_place'] }}</td>
+                    <td><span class="service-type">{{ bus['bus_type'] }}</span></td>
+                    <td class="departure-actions">
+                        <a class="departure-book-link" href="{{ url_for('booking', service=service_key) }}">Book</a>
+                        <a class="departure-track-link" href="{{ url_for('track', service=service_key) }}">Track</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-schedule">
+        <span aria-hidden="true">↗</span>
+        <h3>No matching departures</h3>
+        <p>Try changing the route, service, or time filters.</p>
+        <a href="{{ url_for('timetable') }}">Show all departures</a>
+    </div>
+    {% endif %}
+</section>
 {% endblock %}

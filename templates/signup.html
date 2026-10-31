@@ -1,20 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="no-navbar">
-<h2>Sign Up</h2>
-<form method="post">
-    <label for="role">Choose Role:</label>
-    <select id="role" name="role" required>
-        <option value="user">User</option>
-        <option value="station_master">Station Master</option>
-    </select><br><br>
-    <label>Name:</label><br>
-    <input type="text" name="name" required><br><br>
-    <label>Email:</label><br>
-    <input type="email" name="email" required><br><br>
-    <label>Password:</label><br>
-    <input type="password" name="password" required><br><br>
-    <button type="submit">Sign Up</button>
-</form>
-</div>
+<section class="auth-shell auth-shell-signup">
+    <div class="auth-story">
+        <p class="eyebrow">MAHARASHTRA STATE ROAD TRANSPORT</p>
+        <h1>A better way<br>to get there.</h1>
+        <div class="route-diagram" aria-hidden="true">
+            <span class="route-line"></span>
+            <span class="route-stop route-stop-one"><i></i><b>01</b></span>
+            <span class="route-stop route-stop-two"><i></i><b>02</b></span>
+            <span class="route-stop route-stop-three"><i></i><b>03</b></span>
+        </div>
+        <div class="story-caption"><span>PUBLIC TRANSPORT</span><span>EST. 1948</span></div>
+    </div>
+    <div class="auth-form-panel">
+        <p class="eyebrow eyebrow-red">PASSENGER ACCESS</p>
+        <h2>Create account</h2>
+        <p class="auth-subtitle">A few details to get started.</p>
+        <form method="post" class="auth-form">
+            <label for="name">Full name</label>
+            <input id="name" type="text" name="name" autocomplete="name" placeholder="Your name" required>
+            <label for="email">Email address</label>
+            <input id="email" type="email" name="email" autocomplete="email" placeholder="name@example.com" required>
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" autocomplete="new-password" placeholder="At least 8 characters" required>
+            <button type="submit">Create account <span aria-hidden="true">&#8594;</span></button>
+        </form>
+        <p class="auth-switch">Already registered? <a href="{{ url_for('signin') }}">Sign in</a></p>
+    </div>
+</section>
 {% endblock %}

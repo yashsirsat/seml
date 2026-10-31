@@ -1,9 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Welcome, {{ name }} (Role: {{ role|capitalize }})</h1>
+<section class="home-hero">
+    <div>
+        <p class="eyebrow">PASSENGER SERVICES / OVERVIEW</p>
+        <h1>Hello, {{ name }}.</h1>
+        <p class="home-role">Signed in as {{ role|capitalize }}</p>
+    </div>
+    <div class="home-index" aria-hidden="true">MS<br><span>RTC / 01</span></div>
+</section>
+<div class="section-heading">
+    <div><p class="eyebrow eyebrow-red">YOUR JOURNEY DESK</p><h2>Where to next?</h2></div>
+    <p>Choose a service to plan or follow your trip.</p>
+</div>
 <div class="home-sections">
-    <a class="home-card" href="{{ url_for('track') }}">Track Bus</a>
-    <a class="home-card" href="{{ url_for('booking') }}">Book Seats</a>
-    <a class="home-card" href="{{ url_for('timetable') }}">Timetable</a>
+    <a class="home-card" href="{{ url_for('track') }}">
+        <span class="home-card-number">01 / LIVE</span><span class="home-card-title">Track a bus</span>
+        <span class="home-card-description">Check the latest shared location.</span><span class="home-card-arrow" aria-hidden="true">&#8594;</span>
+    </a>
+    <a class="home-card" href="{{ url_for('booking') }}">
+        <span class="home-card-number">02 / BOOKING</span><span class="home-card-title">Choose a seat</span>
+        <span class="home-card-description">Find a service and reserve seats.</span><span class="home-card-arrow" aria-hidden="true">&#8594;</span>
+    </a>
+    <a class="home-card" href="{{ url_for('timetable') }}">
+        <span class="home-card-number">03 / DEPARTURES</span><span class="home-card-title">View timetable</span>
+        <span class="home-card-description">Browse routes and departure times.</span><span class="home-card-arrow" aria-hidden="true">&#8594;</span>
+    </a>
 </div>
 {% endblock %}

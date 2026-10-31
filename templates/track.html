@@ -1,89 +1,110 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Track Bus Location</h2>
-<form id="trackForm">
-    <label for="bus_name">Bus Name:</label>
-    <select id="bus_name" name="bus_name" required>
-        <option value="">Select Bus Name</option>
-        {% for name in bus_names %}
-        <option value="{{ name }}">{{ name }}</option>
-        {% endfor %}
-    </select><br><br>
-
-    <label for="bus_type">Bus Type:</label>
-    <select id="bus_type" name="bus_type" required>
-        <option value="">Select Bus Type</option>
-        {% for type in bus_types %}
-        <option value="{{ type }}">{{ type }}</option>
-        {% endfor %}
-    </select><br><br>
-
-    <label for="bus_start_time">Start Time:</label>
-    <select id="bus_start_time" name="bus_start_time" required>
-        <option value="">Select Start Time</option>
-        {% for time in bus_times %}
-        <option value="{{ time }}">{{ time }}</option>
-        {% endfor %}
-    </select><br><br>
-
-    <button type="button" onclick="startTracking()">Start Tracking</button>
+<div class="page-heading">
+  <p class="eyebrow eyebrow-red">PASSENGER SERVICES / 01</p>
+  <h1>Live bus tracking</h1>
+  <p>Select a service to check its latest shared location.</p>
+</div>
+<form id="trackForm" class="workflow-form">
+  <div class="form-field">
+    <label for="bus_service">Bus service</label>
+    <select id="bus_service" name="bus_service" required>
+      <option value="">Select a route and departure</option>
+      {% for bus in bus_services %}
+      <option value="{{ bus['bus_name'] }}|{{ bus['bus_type'] }}|{{ bus['bus_start_time'] }}" {% if selected_service == bus['bus_name'] ~ '|' ~ bus['bus_type'] ~ '|' ~ bus['bus_start_time'] %}selected{% endif %}>{{ bus['bus_name'] }} · {{ bus['start_point'] }} to {{ bus['end_point'] }} · {{ bus['bus_type'] }} · {{ bus['bus_start_time'] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit">Find bus <span aria-hidden="true">&#8594;</span></button>
 </form>
 
-<p>Location: <span id="locationDisplay">Select a bus and start tracking</span></p>
-<p>Last updated at: <span id="timeDisplay"></span></p>
+<section class="tracking-result" aria-live="polite">
+  <div class="tracking-pin" aria-hidden="true"></div>
+  <div><p class="eyebrow eyebrow-red">LATEST REPORT <span id="trackingBadge" class="tracking-badge">NOT TRACKING</span></p><p class="tracking-status" id="locationDisplay">Select a bus and find its location.</p><p class="update-time">Last updated <span id="timeDisplay">Not available</span></p></div>
+</section>
 
-<div id="mapContainer" style="margin-top:20px; display:none;">
-    <h3>Live Location on Google Maps</h3>
-    <iframe id="googleMap" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+<div id="mapContainer" class="map-panel" style="display:none;">
+  <h2>Bus location</h2>
+  <iframe id="googleMap" class="map-frame" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Bus location map"></iframe>
 </div>
 
 <script>
+  const trackForm = document.getElementById('trackForm');
+  const locationDisplay = document.getElementById('locationDisplay');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const trackingBadge = document.getElementById('trackingBadge');
+  const mapContainer = document.getElementById('mapContainer');
+  const mapFrame = document.getElementById('googleMap');
   let intervalId = null;
+  let requestInProgress = false;
 
-  function fetchLocation() {
-    const busName = document.getElementById('bus_name').value;
-    const busType = document.getElementById('bus_type').value;
-    const busStartTime = document.getElementById('bus_start_time').value;
+  async function fetchLocation() {
+    const service = document.getElementById('bus_service').value;
 
-    if (!busName || !busType || !busStartTime) {
-      document.getElementById('locationDisplay').textContent = 'Please select all fields';
-      document.getElementById('timeDisplay').textContent = '';
+    if (!service) {
+      locationDisplay.textContent = 'Please select a service, type, and departure.';
+      timeDisplay.textContent = 'Not available';
+      trackingBadge.textContent = 'NOT TRACKING';
+      trackingBadge.classList.remove('is-live');
+      mapContainer.style.display = 'none';
       return;
     }
 
-    fetch(`/bus_location_api?bus_name=${busName}&bus_type=${busType}&bus_start_time=${busStartTime}`)
-      .then(response => response.json())
-      .then(data => {
-        document.getElementById('locationDisplay').textContent = data.location;
-        document.getElementById('timeDisplay').textContent = data.timestamp;
+    if (requestInProgress) return;
+    requestInProgress = true;
+    const params = new URLSearchParams({
+      bus_name: service.split('|')[0],
+      bus_type: service.split('|')[1],
+      bus_start_time: service.split('|')[2]
+    });
+    try {
+      const response = await fetch(`/bus_location_api?${params}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Could not load bus location.');
 
-        // Update Google Maps if location is available
-        // Note: Replace YOUR_GOOGLE_MAPS_API_KEY with a valid Google Maps API key from https://console.cloud.google.com/
-        if (data.lat !== "Location not available" && data.lon !== "N/A") {
-          const lat = data.lat;
-          const lon = data.lon;
-          const mapUrl = `https://www.google.com/maps/embed/v1/view?key=YOUR_GOOGLE_MAPS_API_KEY&center=${lat},${lon}&zoom=15`;
-          document.getElementById('googleMap').src = mapUrl;
-          document.getElementById('mapContainer').style.display = 'block';
-        } else {
-          document.getElementById('mapContainer').style.display = 'none';
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching location:', error);
-        document.getElementById('locationDisplay').textContent = 'Error fetching location';
-        document.getElementById('timeDisplay').textContent = '';
-        document.getElementById('mapContainer').style.display = 'none';
-      });
+      locationDisplay.textContent = data.location;
+      timeDisplay.textContent = data.timestamp || 'Not available';
+      trackingBadge.textContent = data.active ? 'LIVE UPDATES' : (data.available ? 'LAST KNOWN' : 'NOT TRACKING');
+      trackingBadge.classList.toggle('is-live', Boolean(data.active));
+      if (data.available) {
+        const latitude = Number(data.latitude);
+        const longitude = Number(data.longitude);
+        const bounds = [
+          longitude - 0.01, latitude - 0.01,
+          longitude + 0.01, latitude + 0.01
+        ].map(value => value.toFixed(5)).join(',');
+        const mapParams = new URLSearchParams({
+          bbox: bounds,
+          layer: 'mapnik',
+          marker: `${latitude},${longitude}`
+        });
+        mapFrame.src = `https://www.openstreetmap.org/export/embed.html?${mapParams}`;
+        mapContainer.style.display = 'block';
+      } else {
+        mapFrame.removeAttribute('src');
+        mapContainer.style.display = 'none';
+      }
+    } catch (error) {
+      locationDisplay.textContent = error.message || 'Unable to load the bus location.';
+      trackingBadge.textContent = 'UPDATE ERROR';
+      trackingBadge.classList.remove('is-live');
+      mapContainer.style.display = 'none';
+    } finally {
+      requestInProgress = false;
+    }
   }
 
-  function startTracking() {
+  trackForm.addEventListener('submit', event => {
+    event.preventDefault();
     if (intervalId) {
       clearInterval(intervalId);
     }
     fetchLocation();
     intervalId = setInterval(fetchLocation, 30000);
+  });
+  if (document.getElementById('bus_service').value) {
+    trackForm.requestSubmit();
   }
 </script>
 {% endblock %}

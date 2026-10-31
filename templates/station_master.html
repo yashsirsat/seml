@@ -1,49 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Station Master - Update Bus Location</h2>
-
-<form method="POST" id="locForm">
-  <label for="bus_name">Select Bus Name</label>
-  <select name="bus_name" id="bus_name" required>
-    {% for b in bus_names %}
-    <option value="{{b}}">{{b}}</option>
-    {% endfor %}
-  </select><br><br>
-
-  <label for="bus_type">Select Bus Type</label>
-  <select name="bus_type" id="bus_type" required>
-    {% for t in bus_types %}
-    <option value="{{t}}">{{t}}</option>
-    {% endfor %}
-  </select><br><br>
-
-  <label for="bus_start_time">Select Bus Start Time</label>
-  <select name="bus_start_time" id="bus_start_time" required>
-    {% for time in bus_times %}
-    <option value="{{time}}">{{time}}</option>
-    {% endfor %}
-  </select><br><br>
-
-  <label for="location">Current Location (GPS Auto-detected):</label>
-  <input type="text" name="location" id="locationInput" placeholder="Detecting GPS..." readonly required>
-  <p id="gpsStatus">Detecting your location...</p><br><br>
-
-  <button type="submit" id="updateBtn">Update Location</button>
-  <div id="updateStatus"></div>
-</form>
-
-<div id="currentLocationDisplay" style="margin-top:20px; padding:10px; border:1px solid #ccc; background-color:#f9f9f9;">
-  <h3>Current Bus Location (Auto-updated by Bot)</h3>
-  <p id="currentLocation">Loading...</p>
-  <p id="lastUpdateTime">Last updated: Never</p>
+<div class="page-heading">
+    <p class="eyebrow eyebrow-red">OPERATIONS / STATION DESK</p>
+    <h1>Update bus location</h1>
+    <p>Share a bus position and monitor active location updates.</p>
 </div>
 
-<div id="activeBusesSection" style="margin-top:20px; padding:10px; border:1px solid #ddd; background-color:#f0f8ff;">
-  <h3>🤖 Active Auto-Tracking Buses <small>(Bot Active)</small></h3>
-  <div id="activeBusesList">
+<div class="station-dashboard">
+<form method="POST" id="locForm" action="{{ url_for('station_master') }}" class="workflow-form station-form">
+    <div class="field-grid">
+        <div class="form-field"><label for="bus_name">Bus name</label><select name="bus_name" id="bus_name" required>{% for b in bus_names %}<option value="{{b}}">{{b}}</option>{% endfor %}</select></div>
+        <div class="form-field"><label for="bus_type">Service type</label><select name="bus_type" id="bus_type" required>{% for t in bus_types %}<option value="{{t}}">{{t}}</option>{% endfor %}</select></div>
+        <div class="form-field"><label for="bus_start_time">Departure</label><select name="bus_start_time" id="bus_start_time" required>{% for time in bus_times %}<option value="{{time}}">{{time}}</option>{% endfor %}</select></div>
+    </div>
+    <div class="form-field"><label for="locationInput">Current GPS location</label><input type="text" name="location" id="locationInput" placeholder="Waiting for GPS..." readonly required><p id="gpsStatus" class="field-note">Detecting your location...</p></div>
+    <button type="submit" id="updateBtn">Update location</button>
+    <div id="updateStatus" aria-live="polite"></div>
+</form>
+
+<section id="currentLocationDisplay" class="workflow-panel location-panel">
+    <p class="eyebrow eyebrow-red">SELECTED BUS</p>
+    <h2>Current location</h2>
+    <p id="currentLocation">Loading...</p>
+    <p id="lastUpdateTime" class="update-time">Last updated: Never</p>
+</section>
+
+<section id="activeBusesSection" class="workflow-panel active-panel">
+    <p class="eyebrow eyebrow-red">OPERATIONS</p>
+    <h2>Active tracking</h2>
+    <div id="activeBusesList">
     <p>Loading active buses...</p>
   </div>
+</section>
 </div>
 
 <script>
@@ -55,12 +44,68 @@ function getLocation() {
             document.getElementById('locationInput').value = pos.coords.latitude + ',' + pos.coords.longitude;
             document.getElementById('gpsStatus').textContent = 'GPS detected successfully.';
         }, function(error) {
-            document.getElementById('gpsStatus').textContent = 'GPS access denied. Please allow location access.';
-            alert("GPS access is required.");
+            document.getElementById('gpsStatus').textContent = 'GPS permission denied. Allow location access, then try again.';
         });
     } else {
         document.getElementById('gpsStatus').textContent = 'Geolocation not supported.';
     }
+}
+
+let locationWatchId = null;
+let sharingBusKey = null;
+
+async function startLocationSharing() {
+    if (!navigator.geolocation) {
+        document.getElementById('gpsStatus').textContent = 'Geolocation is not supported by this browser.';
+        return;
+    }
+    const service = {
+        bus_name: document.getElementById('bus_name').value,
+        bus_type: document.getElementById('bus_type').value,
+        bus_start_time: document.getElementById('bus_start_time').value
+    };
+    const nextBusKey = `${service.bus_name}|${service.bus_type}|${service.bus_start_time}`;
+    if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+    }
+    if (sharingBusKey && sharingBusKey !== nextBusKey) {
+        await fetch('/api/stop_sharing', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({bus_key: sharingBusKey})
+        });
+    }
+    sharingBusKey = nextBusKey;
+    locationWatchId = navigator.geolocation.watchPosition(async function(position) {
+        const payload = {
+            ...service,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+        };
+        document.getElementById('locationInput').value =
+            `${payload.latitude},${payload.longitude}`;
+        try {
+            const response = await fetch('/api/auto_update_location', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Location update failed.');
+            document.getElementById('gpsStatus').textContent =
+                `GPS sharing live. Updated ${result.timestamp}.`;
+            updateCurrentLocation();
+            loadActiveBuses();
+        } catch (error) {
+            document.getElementById('gpsStatus').textContent = error.message;
+        }
+    }, function(error) {
+        document.getElementById('gpsStatus').textContent =
+            error.code === error.PERMISSION_DENIED
+                ? 'GPS permission denied. Allow location access to share live updates.'
+                : 'GPS signal unavailable. Check device location settings.';
+    }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 20000});
 }
 
 /**
@@ -81,8 +126,8 @@ function updateCurrentLocation() {
         fetch(`/bus_location_api?bus_name=${encodeURIComponent(busName)}&bus_type=${encodeURIComponent(busType)}&bus_start_time=${encodeURIComponent(busStartTime)}`)
             .then(response => response.json())
             .then(data => {
-                currentLoc.textContent = `Location: ${data.location || 'Unknown'}`;
-                lastUpdate.textContent = `Last updated: ${data.timestamp || 'Just now'}`;
+                currentLoc.textContent = data.location || 'Unknown';
+                lastUpdate.textContent = `Last updated: ${data.timestamp || 'Never'}`;
                 lastUpdate.style.opacity = '1';
             })
             .catch(error => {
@@ -108,34 +153,30 @@ document.getElementById('locForm').addEventListener('submit', async function(e) 
     statusDiv.innerHTML = 'Sending location update...';
     
     try {
-        const response = await fetch('/', {
+        const response = await fetch(this.action, {
             method: 'POST',
             body: formData
         });
         
         if (response.ok) {
-            statusDiv.innerHTML = '<p style="color:green; font-weight:bold;">✅ Location updated! refreshing display...</p>';
+            statusDiv.textContent = 'Location updated. Starting live GPS sharing...';
+            startLocationSharing();
             
             // Immediate Timestamp Update
             updateCurrentLocation();
             // Refresh the Active Buses list
             loadActiveBuses();
             
-            const text = await response.text();
-            if (text.toLowerCase().includes('bot activated') || text.toLowerCase().includes('enabled')) {
-                alert("Auto location bot activated!");
-            }
         } else {
             throw new Error('Server responded with error');
         }
     } catch (error) {
-        statusDiv.innerHTML = '<p style="color:red;">Update failed. Retrying manually...</p>';
-        this.submit(); // Fallback
+        statusDiv.textContent = `Update failed: ${error.message}`;
     } finally {
         updateBtn.disabled = false;
         updateBtn.textContent = 'Update Location';
         // Clear status message after 3 seconds
-        setTimeout(() => { statusDiv.innerHTML = ''; }, 3000);
+        setTimeout(() => { statusDiv.textContent = ''; }, 5000);
     }
 });
 
@@ -147,33 +188,53 @@ function loadActiveBuses() {
         .then(response => response.json())
         .then(data => {
             const listDiv = document.getElementById('activeBusesList');
-            const activeBuses = data.started_buses || [];
+            const activeBuses = data.active_buses || [];
             
             if (activeBuses.length === 0) {
-                listDiv.innerHTML = '<p>No active buses.</p>';
+                listDiv.textContent = 'No active buses.';
             } else {
-                listDiv.innerHTML = activeBuses.map(busKey => {
-                    const parts = busKey.split('_');
-                    return `
-                        <div style="padding:8px; margin:5px 0; background:#e8f5e8; border-left:4px solid #4caf50; border-radius:4px; overflow:hidden;">
-                            <strong>${parts[0]} (${parts[1]})</strong> @ ${parts.slice(2).join(':')}
-                            <button onclick="stopSharing('${busKey}')" 
-                                    style="float:right; background:#f44336; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">
-                                Stop
-                            </button>
-                        </div>`;
-                }).join('');
+                listDiv.replaceChildren(...activeBuses.map(bus => {
+                    const row = document.createElement('div');
+                    row.className = 'active-bus-row';
+                    const name = document.createElement('strong');
+                    name.textContent = `${bus.bus_name} (${bus.bus_type})`;
+                    const departure = document.createElement('span');
+                    departure.textContent = `@ ${bus.bus_start_time}`;
+                    const stop = document.createElement('button');
+                    stop.className = 'stop-sharing';
+                    stop.textContent = 'Stop';
+                    stop.addEventListener('click', () => stopSharing(bus.bus_key));
+                    row.append(name, departure, stop);
+                    return row;
+                }));
             }
+        })
+        .catch(() => {
+            document.getElementById('activeBusesList').textContent =
+                'Could not load active buses.';
         });
 }
 
-function stopSharing(busKey) {
+async function stopSharing(busKey) {
     if (confirm(`Stop auto-tracking?`)) {
-        fetch(`/api/stop_sharing/${busKey}`)
-            .then(() => {
-                loadActiveBuses();
-                updateCurrentLocation();
+        try {
+            const response = await fetch('/api/stop_sharing', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({bus_key: busKey})
             });
+            if (!response.ok) throw new Error('Could not stop sharing.');
+            if (locationWatchId !== null && sharingBusKey === busKey) {
+                navigator.geolocation.clearWatch(locationWatchId);
+                locationWatchId = null;
+                sharingBusKey = null;
+            }
+            document.getElementById('gpsStatus').textContent = 'Live GPS sharing stopped.';
+            loadActiveBuses();
+            updateCurrentLocation();
+        } catch (error) {
+            document.getElementById('gpsStatus').textContent = error.message;
+        }
     }
 }
 

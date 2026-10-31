@@ -1,16 +1,83 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Booking Confirmation</h2>
-<p><strong>Selected Seats:</strong> {{ seat_numbers|join(', ') }}</p>
-<p><strong>Total Fare:</strong> ₹{{ fare }}</p>
+<div class="page-heading">
+    <p class="eyebrow eyebrow-red">FINAL STEP</p>
+    <h1>Confirm your booking</h1>
+    <p>Review the seats and fare before confirming.</p>
+</div>
+<section class="confirmation-panel">
+    <div><p class="eyebrow eyebrow-red">SELECTED SEATS</p><p class="confirmation-seats">{{ seat_numbers|join(', ') }}</p></div>
+    <div><p class="eyebrow eyebrow-red">FARE</p><p class="confirmation-fare">&#8377;{{ fare }}</p>
+        {% if razorpay_configured %}
+            <p class="field-note">Secure checkout powered by Razorpay.</p>
+        {% elif demo_mode %}
+            <p class="field-note">Demo mode: this confirms a booking without charging a payment.</p>
+        {% else %}
+            <p class="field-note">Razorpay setup is incomplete. Add both payment keys before continuing.</p>
+        {% endif %}
+    </div>
+    <form method="POST" action="{{ url_for('payment') }}" class="confirmation-form">
+        {% if razorpay_configured %}
+            <input type="hidden" name="payment_mode" value="razorpay">
+            <button type="submit" id="razorpay-pay-btn">
+                {% if order_id %}Open Razorpay Checkout{% else %}Continue to secure payment{% endif %}
+                <span aria-hidden="true">&#8594;</span>
+            </button>
+        {% elif demo_mode %}
+            <input type="hidden" name="payment_mode" value="demo">
+            <button type="submit">Confirm demo booking <span aria-hidden="true">&#8594;</span></button>
+        {% else %}
+            <button type="button" disabled>Payment setup incomplete</button>
+        {% endif %}
+        <p>You'll receive a confirmation email if email service is configured.</p>
+    </form>
+</section>
 
-<form method="POST" action="/payment">
-    <button type="submit" style="padding: 10px 20px; font-size: 16px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        Have you paid? Confirm Booking
-    </button>
-</form>
+{% if razorpay_configured and order_id is defined %}
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const payButton = document.getElementById('razorpay-pay-btn');
+            if (!payButton) return;
+            function openCheckout() {
+                const options = {
+                    key: {{ razorpay_key_id|tojson }},
+                    amount: {{ amount|tojson }},
+                    currency: {{ currency|tojson }},
+                    name: 'MSRTC Journey Desk',
+                    description: 'Bus booking payment',
+                    order_id: {{ order_id|tojson }},
+                    handler: function (response) {
+                        const form = document.querySelector('.confirmation-form');
+                        [
+                            ['payment_id', response.razorpay_payment_id],
+                            ['order_id', response.razorpay_order_id],
+                            ['signature', response.razorpay_signature]
+                        ].forEach(function (field) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = field[0];
+                            input.value = field[1];
+                            form.appendChild(input);
+                        });
+                        form.submit();
+                    },
+                    theme: { color: '#17362d' }
+                };
+                const checkout = new Razorpay(options);
+                checkout.on('payment.failed', function () {
+                    alert('Payment failed. Your seats are not booked. Please retry checkout.');
+                });
+                checkout.open();
+            }
 
-<p style="margin-top: 20px; color: #666;">
-    <small>Click the button above to confirm your booking and receive a confirmation email.</small>
-</p>
+            payButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                openCheckout();
+            });
+
+            openCheckout();
+        });
+    </script>
+{% endif %}
 {% endblock %}
